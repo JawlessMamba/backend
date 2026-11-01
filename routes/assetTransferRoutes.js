@@ -6,8 +6,11 @@ const assetTransferController = require('../controllers/assetTransferController'
 // Import the authentication middleware
 const { authenticate } = require('../middleware/authenticate');
 
-// Create a new asset transfer (requires authentication to get user info)
-router.post('/create-transfer-asset', authenticate, assetTransferController.createTransfer);
+// Every transfer route requires a logged-in user
+router.use(authenticate);
+
+// Create a new asset transfer (user info comes from the token)
+router.post('/create-transfer-asset', assetTransferController.createTransfer);
 
 // Get all transfers with pagination & search
 router.get('/get-all-transfer-assets', assetTransferController.getAllTransfers);

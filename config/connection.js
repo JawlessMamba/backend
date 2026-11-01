@@ -1,3 +1,4 @@
+require("dotenv").config();
 const mySql2 = require("mysql2/promise");
 
 let pool;
@@ -7,11 +8,11 @@ const createPool = async () => {
 
   pool = await mySql2.createPool({
     // ######## ------- local database connection ########
-    host: "localhost",
-    port: "3306",
-    user: "root",
-    password: "",
-    database: "IMS",
+    host: process.env.DB_HOST || "localhost",
+    port: process.env.DB_PORT || "3306",
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_NAME || "IMS",
 
     // ######## ------- live database connection ########
     // connectionLimit: 10,

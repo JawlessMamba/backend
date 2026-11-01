@@ -290,6 +290,15 @@ exports.deleteAsset = async (req, res) => {
       return res.status(404).json({ error: "Asset not found" });
     }
 
+    // Transfer records reference the asset (FK); keep the audit trail instead of failing with a 500
+    const [[{ transfers }]] = await queryRunner(
+      'SELECT COUNT(*) AS transfers FROM asset_transfers WHERE asset_id = ?', [id]
+    );
+    if (transfers > 0) {
+      const message = `This asset has ${transfers} transfer record(s) and can't be deleted, so its history is kept. Mark it as surplus instead.`;
+      return res.status(409).json({ error: message, message });
+    }
+
     // Delete the asset
     await queryRunner('DELETE FROM assets WHERE id = ?', [id]);
 

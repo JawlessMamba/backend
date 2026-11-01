@@ -4,7 +4,13 @@ const { queryRunner } = require("../helpers/queryRunner");
 
 const JWT_SECRET = process.env.JWT_SECRET || "1dikjsaciwndvc";
 
-// ###################### SignUp (Anyone can create account) #######################################
+// Same rule as the Manage Users form
+const PASSWORD_RULE = "Password must be at least 8 characters long with 1 uppercase, 1 lowercase, 1 number, and 1 special character";
+const isStrongPassword = (pw) =>
+  typeof pw === "string" && pw.length >= 8 &&
+  /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /\d/.test(pw) && /[!@#$%^&*(),.?":{}|<>]/.test(pw);
+
+// ###################### SignUp (Admin creates accounts) #######################################
 exports.signUp = async function (req, res) {
   try {
     const { name, email, password, role } = req.body;
@@ -12,6 +18,9 @@ exports.signUp = async function (req, res) {
     // Validate inputs
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email and password are required" });
+    }
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ message: PASSWORD_RULE });
     }
 
     // Default role = "user" agar role na bheja jaye
@@ -48,20 +57,16 @@ exports.signIn = async function (req, res) {
       [email]
     );
 
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Invalid email or password" });
-    }
-
+    // Same response for unknown email and wrong password, so emails can't be probed
     const user = rows[0];
-    
-    // Check if user is blocked
-    if (user.status === 'blocked') {
-      return res.status(403).json({ message: "Your account has been blocked. Please contact administrator." });
-    }
-
-    const validPassword = await bcrypt.compare(password, user.password);
+    const validPassword = user && password && (await bcrypt.compare(password, user.password));
     if (!validPassword) {
       return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    // Only reveal "blocked" to someone who knows the password
+    if (user.status === 'blocked') {
+      return res.status(403).json({ message: "Your account has been blocked. Please contact administrator." });
     }
 
     const token = jwt.sign(
@@ -145,8 +150,8 @@ exports.changeUserPassword = async function (req, res) {
       return res.status(400).json({ message: "User ID and new password are required" });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters long" });
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({ message: PASSWORD_RULE });
     }
 
     // Check if user exists
@@ -176,6 +181,11 @@ exports.toggleUserStatus = async function (req, res) {
     // Check if user is admin
     if (req.user.role !== 'admin') {
       return res.status(403).json({ message: "Access denied. Admin only." });
+    }
+
+    // An admin blocking their own account could lock everyone out
+    if (Number(userId) === Number(req.user.id)) {
+      return res.status(400).json({ message: "You cannot block your own account." });
     }
 
     // Check if user exists and get current status

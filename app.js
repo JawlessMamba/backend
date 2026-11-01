@@ -9,6 +9,9 @@ const assetTransferRoutes = require('./routes/assetTransferRoutes');
 const userRoutes = require('./routes/userRoutes'); // Import user routes
 const app = express();
 
+// Behind nginx (Docker): use the client IP from X-Forwarded-For, e.g. for login rate limiting
+app.set("trust proxy", 1);
+
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(cors({ credentials: true, origin: "*" }));
