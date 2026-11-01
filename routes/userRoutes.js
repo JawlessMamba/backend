@@ -4,14 +4,14 @@ const router = express.Router();
 const userController = require("../controllers/userController");
 const { authenticate, requireAdmin } = require("../middleware/authenticate");
 
-// Slow down password guessing: 10 failed logins per IP per 15 minutes
+// Slow down password guessing: 10 failed logins per IP per 2 minutes
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 2 * 60 * 1000,
   limit: 10,
   skipSuccessfulRequests: true,
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  message: { message: "Too many failed login attempts. Please try again in 15 minutes." },
+  message: { message: "Too many failed login attempts. Please try again in 2 minutes." },
 });
 
 router.post("/signin", loginLimiter, userController.signIn);
